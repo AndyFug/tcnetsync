@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# Copied from jeffmikels / timecode_tools on GitHub.  TODO: Change to forked repo
 from timecode import Timecode
 
 
