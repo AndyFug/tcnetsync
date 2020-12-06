@@ -11,7 +11,7 @@ setuptools.setup(
     license='LICENSE.txt',
 
     python_requires='>=3.7',
-    packages=setuptools.find_packages(exclude=["test", "test.*"]),
+    packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
     install_requires=[
        "timecode",
        "mido",
