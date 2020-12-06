@@ -1,7 +1,8 @@
 import time
 import mido
 
-from tcnetsync import tc_tools as tools
+# from tcnetsync import tc_tools as tools
+from timecode_tools import tools
 from tcnetsync.tcbase import TcBase
 
 
