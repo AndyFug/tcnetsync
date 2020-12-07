@@ -52,6 +52,7 @@ class BaseServer(TcBase):
 
         self.logger.info(f"UDP Server started.  Listening on port: {self.port}")
 
+        # TODO: Make more efficient/elegant
         while self.running:
             self.remove_old_clients()
             # Send messages from send queue
@@ -64,7 +65,7 @@ class BaseServer(TcBase):
                     self.handle_msg(d)
                 except socket.error as e:
                     self.logger.error(e)
-            time.sleep(0.01)
+            time.sleep(0.05)
 
         self.remove_clients()
         self.sock.close()
@@ -103,7 +104,7 @@ class BaseServer(TcBase):
         if client not in self.clients:
             self.add_client(client)
         self.clients[client] = now
-        self.logger.debug(f"Heartbeat from: {client}")
+        # self.logger.debug(f"Heartbeat from: {client}")
         # self.heartbeat_reply(client)
 
     def heartbeat_reply(self, client):
@@ -126,16 +127,18 @@ class BaseServer(TcBase):
             self.logger.error(f"There was a socket error while attempting to send a message: {e}")
 
     def handle_msg(self, d):
-        data = d[0].decode()
+        msg = d[0].decode()
         client = d[1]
-        if data == "/sync/add" or client not in self.clients:
+        self.logger.debug(f"MSG RECV: {client} {msg}")
+
+        if msg == "/sync/add" or client not in self.clients:
             self.add_client(client)
-        elif data == "/sync/remove":
+        elif msg == "/sync/remove":
             self.remove_client(client)
-        elif data == "/heartbeat":
+        elif msg == "/heartbeat":
             self.handle_heartbeat(client)
         else:
-            self.logger.debug(f"Unhandled message: {client} {data}")
+            self.logger.error(f"UNHANDLED MESSAGE: {client} {msg}")
 
 
 class MTCServer(BaseServer):
@@ -175,15 +178,16 @@ class MTCServer(BaseServer):
 
         # Send sync right away if it's a new sync
         if self.new_sync_flag:
-            self.send_sync()
+            self.prepare_sync_message()
             self.new_sync_flag = False
 
         # Or send the sync if the last sync was sent >= 2 secs ago
         elif self.sync.last_ts - self.last_send >= 2:
-            self.send_sync()
+            self.prepare_sync_message()
 
-    def send_sync(self):
+    def prepare_sync_message(self):
         msg = f"{str(self.sync.last_ts)},{str(self.sync.fr)},{str(self.sync.last_tc)}, {self.sync.factor}"
+        msg = f"sync/update/{msg}"
 
         for c, ts in self.clients.items():
             self.add_to_send_queue(msg, c)

@@ -50,13 +50,19 @@ class TcSyncClient(TcSync):
                 t = time.time()
             yield
 
-    def handle_msg(self, msg):
-        msg = msg.decode('utf-8')
-        ts, fr, tc, factor = msg.split(",")
-        tc = Timecode(int(fr), tc)
-        jam_data = float(ts), tc, float(factor)
-        with self.lock:
-            self.update_sync(jam_data[0], jam_data[1])
+    def handle_msg(self, d):
+        msg = d[0].decode('utf-8')
+        client = d[1]
+        self.logger.debug(f"MSG RECV: {client} {msg}")
+        msg = msg.split("/")
+        if msg[0] == "sync" and msg[1] == "update":  # sync/update/
+            ts, fr, tc, factor = msg[2].split(",")
+            tc = Timecode(int(fr), tc)
+            jam_data = float(ts), tc, float(factor)
+            with self.lock:
+                self.update_sync(jam_data[0], jam_data[1])
+        else:
+            self.logger.error(f"UNHANDLED MESSAGE: {client} {msg}")
 
     def listener(self):
         # timeout = 0.1 # Timeout to stop select blocking
@@ -67,9 +73,9 @@ class TcSyncClient(TcSync):
             readable, writeable, error = select.select([self.sock], [self.sock], [], 0)
             for sock in readable:
                 # print(ready)
-                msg = sock.recvfrom(128)
-                self.handle_msg(msg[0])
-            time.sleep(0.01)
+                d = sock.recvfrom(128)
+                self.handle_msg(d)
+            time.sleep(0.05)
 
 
 
